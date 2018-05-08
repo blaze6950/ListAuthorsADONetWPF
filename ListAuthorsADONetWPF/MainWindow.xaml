@@ -5,8 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ListAuthorsADONetWPF"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Authors" Height="450" Width="700">
     <Grid>
-        
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"></ColumnDefinition>
+            <ColumnDefinition></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <DockPanel Name="dockPanel" Grid.Column="0" Margin="10" LastChildFill="True">
+            
+        </DockPanel>
+        <StackPanel Orientation="Vertical" Margin="10" Grid.Column="1">
+            <Button Margin="5" Click="Button_Click" Name="addButton">Add</Button>
+            <Button Margin="5" Click="Button_Click" Name="editButton" IsEnabled="False">Edit</Button>
+            <Button Margin="5" Click="Button_Click" Name="deleteButton" IsEnabled="False">Delete</Button>
+        </StackPanel>
     </Grid>
 </Window>
