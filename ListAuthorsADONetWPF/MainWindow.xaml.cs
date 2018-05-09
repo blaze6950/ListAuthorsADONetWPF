@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ListAuthorsADONetWPF.Model;
+using ListAuthorsADONetWPF.Presenters;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data.SqlClient;
@@ -20,13 +22,24 @@ namespace ListAuthorsADONetWPF
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, IViewMainWindow
     {
-        public ListView myListView;
+        private IPresenterMainWindow _presenter;
+        private ListView _myListView;
+
+        public ListView MyListView {
+            get {
+                return _myListView;
+            }
+            set {
+                _myListView = value;
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
-            myListView = new ListView();
+            _myListView = new ListView();
 
             GridView myGridView = new GridView();
             myGridView.AllowsColumnReorder = true;
@@ -44,245 +57,49 @@ namespace ListAuthorsADONetWPF
             gvc2.Width = 100;
             myGridView.Columns.Add(gvc2);
 
-            myListView.View = myGridView;
-            dockPanel.Children.Add(myListView);
-            myListView.ItemsSource = GetList();
-            myListView.SelectionChanged += MyListView_SelectionChanged;
+            _myListView.View = myGridView;
+            dockPanel.Children.Add(_myListView);
+            _myListView.SelectionChanged += MyListView_SelectionChanged;
+
+            _presenter = new MainWindowPresenter(this);
         }
 
         private void MyListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (myListView.SelectedItem != null)
+            if (_myListView.SelectedItem != null)
             {
                 editButton.IsEnabled = true;
                 deleteButton.IsEnabled = true;
             }
-        }
-
-        public AuthorsList GetList()
-        {
-            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
-            builder.DataSource = "NIKITOS";
-            builder.InitialCatalog = "Library";
-            builder.IntegratedSecurity = true;
-
-            AuthorsList authors = new AuthorsList();
-
-            SqlConnection connection = new SqlConnection(builder.ConnectionString);
-            try
+            else
             {
-                connection.Open();
-                Console.WriteLine("Opened");               
-
-                SqlCommand command = connection.CreateCommand();
-                command.CommandText = "SELECT * FROM Authors";
-
-                SqlDataReader reader = command.ExecuteReader();
-                while (reader.Read())
-                {
-                    authors.Add(new Author((String)reader["FirstName"], (String)reader["LastName"]));
-                }
+                editButton.IsEnabled = false;
+                deleteButton.IsEnabled = false;
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Ooops", MessageBoxButton.OK);
-            }
-            finally
-            {
-                if (connection.State == System.Data.ConnectionState.Open)
-                {
-                    connection.Close();
-                }
-            }
-            return authors;
-        }
-
-        public class Author
-        {
-            private String _firstName;
-            private String _lastName;
-
-            public Author(string firstName, string lastName)
-            {
-                FirstName = firstName;
-                LastName = lastName;
-            }
-
-            public string FirstName { get => _firstName; set => _firstName = value; }
-            public string LastName { get => _lastName; set => _lastName = value; }
-        }
-
-        public class AuthorsList : ObservableCollection<Author>
-        {
-           
-        }
+        }        
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             switch (((Button)sender).Name)
             {
                 case "addButton":
-                    AddAuthor();
+                    _presenter.AddAuthor();
                     break;
                 case "editButton":
-                    EditAuthor();
+                    _presenter.EditAuthor();
                     break;
                 case "deleteButton":
-                    DeleteAuthor();
+                    _presenter.DeleteAuthor();
                     break;
                 default:
                     break;
             }
         }
 
-        public void AddAuthor()
-        {
-            additionalWindow window = new additionalWindow();
-            bool? res = window.ShowDialog();
-
-            if (res != null && res == true)
-            {
-                SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
-                builder.DataSource = "NIKITOS";
-                builder.InitialCatalog = "Library";
-                builder.IntegratedSecurity = true;
-
-                SqlConnection connection = new SqlConnection(builder.ConnectionString);
-                try
-                {
-                    connection.Open();
-                    Console.WriteLine("Opened");
-
-                    SqlCommand command = connection.CreateCommand();
-                    command.CommandText = "INSERT INTO Authors(FirstName, LastName) VALUES (@FirstName, @LastName)";
-
-                    SqlParameter firstNameParam = command.Parameters.Add("@FirstName", System.Data.SqlDbType.NVarChar, 15);
-
-                    SqlParameter lastNameParam = command.Parameters.Add("@LastName", System.Data.SqlDbType.NVarChar, 25);
-
-                    firstNameParam.Value = window.Author.FirstName;
-                    lastNameParam.Value = window.Author.LastName;
-
-                    command.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, "Ooops", MessageBoxButton.OK);
-                }
-                finally
-                {
-                    if (connection.State == System.Data.ConnectionState.Open)
-                    {
-                        connection.Close();
-                    }
-                }
-            }
-
-            myListView.ItemsSource = GetList();
-        }
-
-        public void EditAuthor()
-        {
-            Author oldAuthor = new Author(GetSelecetedAuthor().FirstName, GetSelecetedAuthor().LastName);
-            additionalWindow window = new additionalWindow(GetSelecetedAuthor());
-            bool? res = window.ShowDialog();
-
-            if (res != null && res == true)
-            {
-                SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
-                builder.DataSource = "NIKITOS";
-                builder.InitialCatalog = "Library";
-                builder.IntegratedSecurity = true;                
-
-                SqlConnection connection = new SqlConnection(builder.ConnectionString);
-                try
-                {
-                    connection.Open();
-                    Console.WriteLine("Opened");
-
-                    SqlCommand command = connection.CreateCommand();
-                    command.CommandText = "UPDATE Authors SET FirstName = @newFirstName, LastName = @newLastName WHERE FirstName = @FirstName AND LastName = @LastName";
-
-                    SqlParameter firstNameParam = command.Parameters.Add("@FirstName", System.Data.SqlDbType.NVarChar, 15);
-
-                    SqlParameter lastNameParam = command.Parameters.Add("@LastName", System.Data.SqlDbType.NVarChar, 25);
-
-                    SqlParameter newFirstNameParam = command.Parameters.Add("@newFirstName", System.Data.SqlDbType.NVarChar, 15);
-
-                    SqlParameter newLastNameParam = command.Parameters.Add("@newLastName", System.Data.SqlDbType.NVarChar, 25);
-
-                    firstNameParam.Value = oldAuthor.FirstName;
-                    lastNameParam.Value = oldAuthor.LastName;
-
-                    newFirstNameParam.Value = window.Author.FirstName;
-                    newLastNameParam.Value = window.Author.LastName;
-
-                    command.ExecuteNonQuery();                    
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, "Ooops", MessageBoxButton.OK);
-                }
-                finally
-                {
-                    if (connection.State == System.Data.ConnectionState.Open)
-                    {
-                        connection.Close();
-                    }
-                }
-            }
-
-            myListView.ItemsSource = GetList();
-        }
-
-        public void DeleteAuthor()
-        {
-            MessageBoxResult res = MessageBox.Show("Are u sure?", "Really?", MessageBoxButton.YesNo);
-            if (res == MessageBoxResult.Yes)
-            {
-                SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
-                builder.DataSource = "NIKITOS";
-                builder.InitialCatalog = "Library";
-                builder.IntegratedSecurity = true;
-
-                SqlConnection connection = new SqlConnection(builder.ConnectionString);
-                try
-                {
-                    connection.Open();
-                    Console.WriteLine("Opened");
-
-                    SqlCommand command = connection.CreateCommand();
-                    command.CommandText = "DELETE FROM Authors WHERE FirstName = @FirstName AND LastName = @LastName";
-
-                    SqlParameter firstNameParam = command.Parameters.Add("@FirstName", System.Data.SqlDbType.NVarChar, 15);
-
-                    SqlParameter lastNameParam = command.Parameters.Add("@LastName", System.Data.SqlDbType.NVarChar, 25);
-                    
-                    firstNameParam.Value = GetSelecetedAuthor().FirstName;
-                    lastNameParam.Value = GetSelecetedAuthor().LastName;
-
-                    command.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, "Ooops", MessageBoxButton.OK);
-                }
-                finally
-                {
-                    if (connection.State == System.Data.ConnectionState.Open)
-                    {
-                        connection.Close();
-                    }
-                }
-            }
-
-            myListView.ItemsSource = GetList();
-        }
-
         public Author GetSelecetedAuthor()
         {
-            Author author = (Author)myListView.SelectedItem;
+            Author author = (Author)_myListView.SelectedItem;
             return author;
-        }
+        }                
     }
 }

@@ -11,8 +11,8 @@ namespace ListAuthorsADONetWPF.Model
 {
     class DbLibrary : IDisposable
     {
-        private String connectionString = null;
-        private SqlConnection connection = null;
+        private String _connectionString = null;
+        private SqlConnection _connection = null;
 
         public DbLibrary()
         {
@@ -21,11 +21,11 @@ namespace ListAuthorsADONetWPF.Model
             builder.InitialCatalog = "Library";
             builder.IntegratedSecurity = true;
 
-            connectionString = builder.ConnectionString;
-            SqlConnection connection = new SqlConnection(connectionString);
+            _connectionString = builder.ConnectionString;
+            _connection = new SqlConnection(_connectionString);
             try
             {
-                connection.Open();                
+                _connection.Open();                
                 MessageBox.Show("Connection opened", "Successfully", MessageBoxButton.OK);
             }
             catch (Exception ex)
@@ -40,7 +40,7 @@ namespace ListAuthorsADONetWPF.Model
             SqlDataReader reader = null;
             try
             {                
-                SqlCommand command = connection.CreateCommand();
+                SqlCommand command = _connection.CreateCommand();
                 command.CommandText = "SELECT * FROM Authors";
 
                 reader = command.ExecuteReader();
@@ -63,101 +63,84 @@ namespace ListAuthorsADONetWPF.Model
             return authors;
         }
 
-        public void AddAuthor()
+        public void AddAuthor(Author author)
         {
-            additionalWindow window = new additionalWindow();
-            bool? res = window.ShowDialog();
+            try
+            {
+                SqlCommand command = _connection.CreateCommand();
+                command.CommandText = "INSERT INTO Authors(FirstName, LastName) VALUES (@FirstName, @LastName)";
 
-            if (res != null && res == true)
-            {                
-                try
-                {   
-                    SqlCommand command = connection.CreateCommand();
-                    command.CommandText = "INSERT INTO Authors(FirstName, LastName) VALUES (@FirstName, @LastName)";
+                SqlParameter firstNameParam = command.Parameters.Add("@FirstName", System.Data.SqlDbType.NVarChar, 15);
 
-                    SqlParameter firstNameParam = command.Parameters.Add("@FirstName", System.Data.SqlDbType.NVarChar, 15);
+                SqlParameter lastNameParam = command.Parameters.Add("@LastName", System.Data.SqlDbType.NVarChar, 25);
 
-                    SqlParameter lastNameParam = command.Parameters.Add("@LastName", System.Data.SqlDbType.NVarChar, 25);
+                firstNameParam.Value = author.FirstName;
+                lastNameParam.Value = author.LastName;
 
-                    firstNameParam.Value = window.Author.FirstName;
-                    lastNameParam.Value = window.Author.LastName;
-
-                    command.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, "Ooops", MessageBoxButton.OK);
-                }                
+                command.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ooops", MessageBoxButton.OK);
             }
         }
 
-        public void EditAuthor(Author selectedAuthor)
+        public void EditAuthor(Author oldAuthor, Author newAuthor)
         {
-            Author oldAuthor = new Author(selectedAuthor.FirstName, selectedAuthor.LastName);
-            additionalWindow window = new additionalWindow(selectedAuthor);
-            bool? res = window.ShowDialog();
+            try
+            {
+                SqlCommand command = _connection.CreateCommand();
+                command.CommandText = "UPDATE Authors SET FirstName = @newFirstName, LastName = @newLastName WHERE FirstName = @FirstName AND LastName = @LastName";
 
-            if (res != null && res == true)
-            {                
-                try
-                {                    
-                    SqlCommand command = connection.CreateCommand();
-                    command.CommandText = "UPDATE Authors SET FirstName = @newFirstName, LastName = @newLastName WHERE FirstName = @FirstName AND LastName = @LastName";
+                SqlParameter firstNameParam = command.Parameters.Add("@FirstName", System.Data.SqlDbType.NVarChar, 15);
 
-                    SqlParameter firstNameParam = command.Parameters.Add("@FirstName", System.Data.SqlDbType.NVarChar, 15);
+                SqlParameter lastNameParam = command.Parameters.Add("@LastName", System.Data.SqlDbType.NVarChar, 25);
 
-                    SqlParameter lastNameParam = command.Parameters.Add("@LastName", System.Data.SqlDbType.NVarChar, 25);
+                SqlParameter newFirstNameParam = command.Parameters.Add("@newFirstName", System.Data.SqlDbType.NVarChar, 15);
 
-                    SqlParameter newFirstNameParam = command.Parameters.Add("@newFirstName", System.Data.SqlDbType.NVarChar, 15);
+                SqlParameter newLastNameParam = command.Parameters.Add("@newLastName", System.Data.SqlDbType.NVarChar, 25);
 
-                    SqlParameter newLastNameParam = command.Parameters.Add("@newLastName", System.Data.SqlDbType.NVarChar, 25);
+                firstNameParam.Value = oldAuthor.FirstName;
+                lastNameParam.Value = oldAuthor.LastName;
 
-                    firstNameParam.Value = oldAuthor.FirstName;
-                    lastNameParam.Value = oldAuthor.LastName;
+                newFirstNameParam.Value = newAuthor.FirstName;
+                newLastNameParam.Value = newAuthor.LastName;
 
-                    newFirstNameParam.Value = window.Author.FirstName;
-                    newLastNameParam.Value = window.Author.LastName;
-
-                    command.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, "Ooops", MessageBoxButton.OK);
-                }                
+                command.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ooops", MessageBoxButton.OK);
             }
         }
 
         public void DeleteAuthor(Author selectedAuthor)
         {
-            MessageBoxResult res = MessageBox.Show("Are u sure?", "Really?", MessageBoxButton.YesNo);
-            if (res == MessageBoxResult.Yes)
-            {                
-                try
-                {                    
-                    SqlCommand command = connection.CreateCommand();
-                    command.CommandText = "DELETE FROM Authors WHERE FirstName = @FirstName AND LastName = @LastName";
+            try
+            {
+                SqlCommand command = _connection.CreateCommand();
+                command.CommandText = "DELETE FROM Authors WHERE FirstName = @FirstName AND LastName = @LastName";
 
-                    SqlParameter firstNameParam = command.Parameters.Add("@FirstName", System.Data.SqlDbType.NVarChar, 15);
+                SqlParameter firstNameParam = command.Parameters.Add("@FirstName", System.Data.SqlDbType.NVarChar, 15);
 
-                    SqlParameter lastNameParam = command.Parameters.Add("@LastName", System.Data.SqlDbType.NVarChar, 25);
+                SqlParameter lastNameParam = command.Parameters.Add("@LastName", System.Data.SqlDbType.NVarChar, 25);
 
-                    firstNameParam.Value = selectedAuthor.FirstName;
-                    lastNameParam.Value = selectedAuthor.LastName;
+                firstNameParam.Value = selectedAuthor.FirstName;
+                lastNameParam.Value = selectedAuthor.LastName;
 
-                    command.ExecuteNonQuery();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, "Ooops", MessageBoxButton.OK);
-                }                
+                command.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ooops", MessageBoxButton.OK);
             }
         }
 
         public void Dispose()
         {
-            if (connection != null && connection.State == System.Data.ConnectionState.Open)
+            if (_connection != null && _connection.State == System.Data.ConnectionState.Open)
             {
-                connection.Close();
+                _connection.Close();
             }
         }
     }
