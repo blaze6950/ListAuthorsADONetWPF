@@ -25,12 +25,14 @@ namespace ListAuthorsADONetWPF
         public additionalWindow()
         {
             InitializeComponent();
+            this.Title = "Add";
         }
 
         public additionalWindow(Author author)
         {            
             InitializeComponent();
             Author = author;
+            this.Title = "Edit";
         }
 
         public Author Author { get => _author;
